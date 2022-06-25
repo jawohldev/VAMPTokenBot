@@ -1,6 +1,7 @@
-                            VAMP Token Bot v1.0
+                                               VAMP Token Bot v1.0
+                                               ===================
 Requirements
-============
+------------
 Python 3.7 or greater
 #Setup:
 Establish a virtual environment
@@ -20,7 +21,7 @@ then run
 
 
 What this is?
-=============
+-------------
 This is a Botting service used to scrape information off of FTMScan.nets api and post it to Telegram Discord and Twitter.
 Winning blocks are stored in winningblock.log
 
