@@ -1,5 +1,5 @@
-                                               VAMP Token Bot v1.0
-                                               ===================
+VAMP Token Bot v1.0
+===================
 Requirements
 ------------
 Python 3.7 or greater
