@@ -14,7 +14,6 @@ jackpot_time_extended = "0xa8162f194f354dc15e429cc707c82c54a8a66cd6415e8e71670f4
 bought_morbius = "0x0000000000000000000000006913f60a53f5408df3175b306dd943e83b3a284e"
 its_morbin_time = "0xe6e35173318ce029f42a2f07d65a76cfae9604c672a3c8160109fe4886bdfcbc"
 buy_back_for_morbin_time = "0x5e78eb00bb758809ccd7dd288bf7450dd825f4661703d21faa7e3cc392fb571b"
-#sold_morbius = "0xb0db0551bcb75964440d0dd0f9449c9b176f08ca4fa1a60b2b1e903bd58b1ac3"
 jackpot_award = "0xbb60574db333fcc16f66d64cf8f428581daaf704cf6a01e321d264b6cc0793e6"
 
 ftm_api_key = credentials["FTMScanAPIKey"]

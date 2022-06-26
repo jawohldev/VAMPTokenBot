@@ -10,20 +10,19 @@ class TelegramBot():
     async def post(self, message):
         
         request = url + self.api_key + f"/sendMessage?chat_id={self.chat_id}&text={message}"
-        print(request)
         result = requests.get(request).json()
-        print(result)
-        pass
+        return result["result"]
 
     async def getMe(self):
         request = url+self.api_key+f"/getMe"
         print("getMeRequest:",request)
         result = requests.get(request).json()
-        print(result)
+        return result["result"]
+        
     async def getUpdates(self):
         request= url+self.api_key+f"/getUpdates"
         result= requests.get(request).json()
-        print(result["result"])
+        return result["result"]
 
     async def Login(self, browser):
         self.browser = browser
