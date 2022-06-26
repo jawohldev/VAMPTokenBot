@@ -3,7 +3,11 @@ VAMP Token Bot v1.0
 Requirements
 ------------
 Python 3.7 or greater
-#Setup:
+GeckDriver
+Firefox
+
+Setup:
+------
 Establish a virtual environment
 python -m venv "Your Virtual Environment Name"
 in CMD use pip to install requirements
