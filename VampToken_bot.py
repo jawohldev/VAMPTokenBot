@@ -128,7 +128,7 @@ class VampToken_bot(nextcord.Client):
     '''
     async def post_twitter(self, msgs):
         try:
-            with splinter.Browser() as browser:
+            with splinter.Browser('firefox', headless=True) as browser:
                 twitter_bot = TwitterBot.TwitterBot()
                 await twitter_bot.login(browser)
                 await asyncio.sleep(5)
@@ -136,7 +136,18 @@ class VampToken_bot(nextcord.Client):
                     await twitter_bot.post(msg)
                     await asyncio.sleep(10)
         except Exception as e:
-            print("Something is wrong with the Twitter bot \n", str(e))
+            secrets.log(f"Firefox Failed trying Chrome - {time.localtime()}")
+            try:
+                with splinter.Browser('chrome', headless=True):
+                    twitter_bot = TwitterBot.TwitterBot()
+                    await twitter_bot.login(browser)
+                    await asyncio.sleep(5)
+                    for msg in msgs:
+                        await twitter_bot.post(msg)
+                        await asyncio.sleep(10)
+            except:
+                secrets.log(f"Chrome failed stopping Twitter bot - {time.localtime()}")
+                
  
         pass
 

@@ -5,6 +5,7 @@ Requirements
 Python 3.7 or greater
 GeckDriver
 Firefox
+ChromeDriver
 
 Setup:
 ------
