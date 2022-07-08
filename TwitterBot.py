@@ -1,11 +1,12 @@
 import asyncio
 from selenium.webdriver.common import keys
-import splinter, secrets, random
+import secrets, random
 credentials = secrets.get_credentials()
 class TwitterBot():
     def __init__(self):
         pass
     async def login(self, browser):
+        print("login")
         try:
             self.browser = browser
             self.browser.visit("https://twitter.com/i/flow/login")
@@ -22,6 +23,7 @@ class TwitterBot():
             print(str(e))
         
     async def post(self, msg):
+        print("Post")
         try:
             self.browser.visit("https://twitter.com")
             await asyncio.sleep(self.sleep_time())

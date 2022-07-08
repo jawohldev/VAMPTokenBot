@@ -37,6 +37,7 @@ class VampToken_bot(nextcord.Client):
     async def on_ready(self):
         try:
             await asyncio.sleep(4)
+            await self.fetch_winning_blocks()
             print(dBot.user)
         except:
             pass
@@ -69,15 +70,13 @@ class VampToken_bot(nextcord.Client):
 
                 
                 wait_time = 200 # catch in case last_tx isn't initialized
-                try:
-                    if (self.last_post_time - time.time()) > 15:
-                        #print("time diff", self.last_tx['jackpot_time']-time.time())
-                        wait_time = (float(self.last_tx["jackpot_time"] - time.time())//120+1 )
-                except:
-                    pass
-                finally:
-                    print("Time until next check: ", wait_time)
-                    await asyncio.sleep(wait_time)
+                if self.next_check != None:
+                    wait_time = self.next_check
+                    print("next_check",self.next_check, "time_to_morb",self.iTime_to_morb)
+                if wait_time < 0:
+                   wait_time = 60
+                print("Time until next check: ", wait_time)
+                await asyncio.sleep(wait_time)
 
     '''
     Creates the messages to be shared
@@ -85,25 +84,32 @@ class VampToken_bot(nextcord.Client):
     '''
     async def create_post_of_type(self):
         lMessage = []
-        match self.post_type:
-            case PostType.WarningTime:
-                jackpot_time = int(self.last_tx["jackpot_time"] - time.time())//60+2#time.time()) // 60
-                lMessage.append(f"Heads up! \n{self.last_tx['address']}\n is in the lead at {self.last_tx['jackpot_amount_dollar']:.2f}$ Jackpot will be awarded in {jackpot_time} minutes!")
+        isMinutes = "minutes"
+        if self.post_type ==  PostType.WarningTime:
+            jackpot_time = int(self.last_tx["jackpot_time"] - time.time()) /60 
+            if jackpot_time < 1:
+                jackpot_time *= 60
+                isMinutes = "seconds"
+            jackpot_time = round(jackpot_time)
+            lMessage.append(f"Heads up! \n{self.last_tx['address']}\n is in the lead at {self.last_tx['jackpot_amount_dollar']:.2f}$ Jackpot will be awarded in {jackpot_time} {isMinutes}!")
 
-            case PostType.MorbinTime:
-                lMessage.append(f"ITS MORBIN TIME! FTM used to buy back VAMP {self.morbtime['ftm_buyback']:.4f} Amount of VAMP Burned: {self.buyback['morb']:.4f}.")
-                lMessage.append(f"MorbinTime has occurred {self.morbtime['count']} Total VAMP burned {self.buyback['total_morb']:.4f}. Total FTM used: {self.morbtime['total_ftm']:.4f}")
-                lMessage.append(f"Another {self.morbtime['jackpot_ftm']:.8f} FTM ({self.morbtime['jackpot_dollar']:.2f}$) has been seeded into the jackpot!")
-                
-            case PostType.JackPot:
-                lMessage.append(f"WE HAVE A JACKPOT WINNER!\n {self.jackpot['address']}\n congratulations on winning {self.jackpot['ftm_award']:.4f}" )
-                lMessage.append(f"Another {self.jackpot['ftm_balance']:.2f} FTM ({self.jackpot['dollar_balance']}$) has been seeded into the jackpot!")
-                lMessage.append(f"The jackpot has been won {self.jackpot['count']} times. Total FTM dispersed: {self.jackpot['total_ftm']} Total Dollars Won: {self.jackpot['total_dollar']:.2f}$")
+        if self.post_type ==  PostType.MorbinTime:
+            print("MorbinTime message")
+            lMessage.append(f"ITS MORBIN TIME! FTM used to buy back VAMP {self.morbtime['ftm_buyback']:.4f} Amount of VAMP Burned: {self.buyback['morb']:.4f}.")
+            lMessage.append(f"MorbinTime has occurred {self.morbtime['count']} Total VAMP burned {self.buyback['total_morb']:.4f}. Total FTM used: {self.morbtime['total_ftm']:.4f}")
+            lMessage.append(f"Another {self.morbtime['jackpot_ftm']:.8f} FTM ({self.morbtime['jackpot_dollar']:.2f}$) has been seeded into the jackpot!")
+            
+        if self.post_type ==  PostType.JackPot:
+            print("Jackpot Message")
+            lMessage.append(f"WE HAVE A JACKPOT WINNER!\n {self.jackpot['address']}\n congratulations on winning {self.jackpot['ftm_award']:.4f}$" )
+            lMessage.append(f"Another {self.jackpot['ftm_balance']:.2f} FTM ({self.jackpot['dollar_balance']}$) has been seeded into the jackpot!")
+            lMessage.append(f"The jackpot has been won {self.jackpot['count']} times. Total FTM dispersed: {self.jackpot['total_ftm']} Total Dollars Won: {self.jackpot['total_dollar']:.2f}$")
+            if self.buyback is not None:
                 lMessage.append(f"{self.jackpot['ftm_buyback']} FTM was used to burn {self.buyback['morb']} VAMP." )
                 lMessage.append(f"Total VAMP burned: {self.buyback['total_morb']} using {self.jackpot['total_ftm']} FTM")
-                
-            case PostType.Empty:
-                return []
+            
+        if self.post_type ==  PostType.Empty:
+            return []
         return lMessage
     '''
     Posts to Discord
@@ -163,26 +169,45 @@ class VampToken_bot(nextcord.Client):
         await self.fetch_winning_blocks()
         self.post_type = PostType.Empty
         self.iTime_to_morb = self.last_tx["timeStamp"] // 60
-        
-        if  self.morbtime["block"] != last_morbtime_block:
-            self.post_type = PostType.MorbinTime
-
-        elif last_jackpot_award != self.jackpot["block"]:
-            self.post_type = PostType.JackPot
-
-        elif self.iTime_to_morb < time.time() // 60+10:           
+        print("jackpot_time",self.last_tx["jackpot_time"])
+        self.next_check = (self.last_tx["jackpot_time"] - time.time()) /2
+        print(self.last_jackpot_award)
+        if time.time() > self.last_tx["jackpot_time"]:           
+            print("check here post time check")
             self.post_type = PostType.WarningTime
+            await self.finish_morbin_time()
+            return
+        if self.morbtime != None:
+            if  self.morbtime["block"] != last_morbtime_block:
+                self.post_type = PostType.MorbinTime
+                await self.finish_morbin_time()
+                return
+        if self.jackpot != None:
+            if self.last_jackpot_award != self.jackpot["block"]:
+                self.post_type = PostType.JackPot
+                await self.finish_morbin_time()
+                return
+
+            print("check here")
+        
+        print("niggerd")
+
+    async def finish_morbin_time(self):
         print("post_type: ", self.post_type)
+        if self.morbtime == None:
+            self.morbtime = {"block":"0x00000"}
+        if self.jackpot == None:
+            self.jackpot = {"block": "0x00000"}
         secrets.write_winning_block(self.morbtime["block"],self.jackpot["block"])
         self.loop.create_task(self.fetch_winning_blocks())
+
     '''
     This will fetch the last winning blocks from winningblock.log
     '''
     async def fetch_winning_blocks(self):
-        global last_jackpot_award, last_morbtime_block
         new_blocks = secrets.get_last_winning_block()
-        last_jackpot_award = new_blocks[1]
-        last_morbtime_block = new_blocks[0]
+        self.last_jackpot_award = new_blocks[1]
+        self.last_morbtime_block = new_blocks[0]
 
 dBot = VampToken_bot()
 

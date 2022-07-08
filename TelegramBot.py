@@ -8,18 +8,20 @@ class TelegramBot():
         pass
 
     async def post(self, message):
-        
+        print("posting")
         request = url + self.api_key + f"/sendMessage?chat_id={self.chat_id}&text={message}"
         result = requests.get(request).json()
         return result["result"]
 
     async def getMe(self):
+        print("getMe")
         request = url+self.api_key+f"/getMe"
         print("getMeRequest:",request)
         result = requests.get(request).json()
         return result["result"]
         
     async def getUpdates(self):
+        print("getUpdates")
         request= url+self.api_key+f"/getUpdates"
         result= requests.get(request).json()
         return result["result"]

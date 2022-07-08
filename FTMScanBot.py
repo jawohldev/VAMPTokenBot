@@ -6,8 +6,8 @@ credentials=secrets.get_credentials()
 decimal_place = 10**18
 
 last_winning_block= secrets.get_last_winning_block()
-testnetURL = "https://api-testnet.FTMScan.com/api?"
-morb_token = "0xc9f4f188cA767227eB26c8e6c619bba13BD6dDa0"
+testnetURL = "https://api.FTMScan.com/api?"
+morb_token = "0xa10666f9893A70fe476a425658802D16ce553D4C"
 empty_token = "0x0000000000000000000000000000000000000000"
 jackpot_min_amt_changed = "0xaf059ee9d42c1ffcd90b59907d307cfab29e5d2ecf6402a5174ad8d4ec4e401b"
 jackpot_time_extended = "0xa8162f194f354dc15e429cc707c82c54a8a66cd6415e8e71670f4f404caccc00"
@@ -25,8 +25,9 @@ last_morbtime_block_old = old_block[0]
 last_jackpot_award_old = old_block[1]
 
 async def get_jack_pot_time():
+    print("get_jackpot_time")
     Time_to_morb_result = {}
-    jackpot_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=9999999&address={morb_token}&sort=desc&topic0={jackpot_time_extended}&apikey={ftm_api_key}"
+    jackpot_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&sort=desc&topic0={jackpot_time_extended}&apikey={ftm_api_key}"
     jackpot_json = requests.get(jackpot_get_request).json()
     jackpot_data = await parse_hex(jackpot_json['result'][len(jackpot_json['result'])-1]['data'].split('x')[1])
     Time_to_morb_result["last_block"] = jackpot_json['result'][0]["blockNumber"]
@@ -40,53 +41,75 @@ async def get_jack_pot_time():
     return Time_to_morb_result
 
 async def get_jackpot_award():
-    jackpot_award_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=9999999&address={morb_token}&topic0={jackpot_award}&apikey={ftm_api_key}"
-    jackpot_award_json = requests.get(jackpot_award_get_request).json()['result']
-    jackpot_award_json = jackpot_award_json[len(jackpot_award_json)-1]
-    jackpotAward_result = {}
-    jackpot_award_data = await parse_hex(jackpot_award_json['data'].split('x')[1])
+    print("get_jackpot_award()")
+    try:
+        jackpot_award_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={jackpot_award}&apikey={ftm_api_key}"
+        jackpot_award_json = requests.get(jackpot_award_get_request).json()['result']
+        jackpot_award_json = jackpot_award_json[len(jackpot_award_json)-1]
+        jackpotAward_result = {}
+        jackpot_award_data = await parse_hex(jackpot_award_json['data'].split('x')[1])
 
-    jackpotAward_result["address"] = "0x"+jackpot_award_data[0][-40:]                        #
-    jackpotAward_result["block"] = jackpot_award_json["blockNumber"]
-    jackpotAward_result["ftm_award"]            = float.fromhex(jackpot_award_data[1])  / float(decimal_place)
-    jackpotAward_result["ftm_buyback"]          = float.fromhex(jackpot_award_data[2])  / float(decimal_place)
-    jackpotAward_result["count"]                = int(float.fromhex(jackpot_award_data[3]) )
-    jackpotAward_result["total_ftm"]            = float.fromhex(jackpot_award_data[4])  / float(decimal_place)
-    jackpotAward_result["total_dollar"]         = float.fromhex(jackpot_award_data[5])      /float(decimal_place)
-    jackpotAward_result["total_ftm_burned"]     = float.fromhex(jackpot_award_data[6])  / float(decimal_place)
-    jackpotAward_result["ftm_balance"]          = float.fromhex(jackpot_award_data[7]) / float(decimal_place)
-    jackpotAward_result["dollar_balance"]       = float.fromhex(jackpot_award_data[8]) / float(decimal_place)
-    jackpotAward_result["timeofaward"]          = int(float.fromhex(jackpot_award_data[9]))
-    
-    return jackpotAward_result
+        jackpotAward_result["address"] = "0x"+jackpot_award_data[0][-40:]                        #
+        jackpotAward_result["block"] = jackpot_award_json["blockNumber"]
+        jackpotAward_result["ftm_award"]            = float.fromhex(jackpot_award_data[1])  / float(decimal_place)
+        jackpotAward_result["ftm_buyback"]          = float.fromhex(jackpot_award_data[2])  / float(decimal_place)
+        jackpotAward_result["count"]                = int(float.fromhex(jackpot_award_data[3]) )
+        jackpotAward_result["total_ftm"]            = float.fromhex(jackpot_award_data[4])  / float(decimal_place)
+        jackpotAward_result["total_dollar"]         = float.fromhex(jackpot_award_data[5])      /float(decimal_place)
+        jackpotAward_result["total_ftm_burned"]     = float.fromhex(jackpot_award_data[6])  / float(decimal_place)
+        jackpotAward_result["ftm_balance"]          = float.fromhex(jackpot_award_data[7]) / float(decimal_place)
+        jackpotAward_result["dollar_balance"]       = float.fromhex(jackpot_award_data[8]) / float(decimal_place)
+        jackpotAward_result["timeofaward"]          = int(float.fromhex(jackpot_award_data[9]))
+        print("jackpot award: ",jackpotAward_result)
+        return jackpotAward_result
+    except:
+        return None
 
 async def get_morbinTime():
-    morbinTime_result = {}
-    morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=9999999&address={morb_token}&topic0={its_morbin_time}&apikey={ftm_api_key}"
-    morbin_time_json = requests.get(morbin_time_get_request).json()['result']
-    morbin_time_json = morbin_time_json[len(morbin_time_json)-1]
-    morbinTime_result["block"] = morbin_time_json["blockNumber"]
-    morbin_time_data = await parse_hex(morbin_time_json['data'].split('x')[1])
-    morbinTime_result["ftm_buyback"]    = float.fromhex(morbin_time_data[0]) / float(decimal_place)
-    morbinTime_result["count"]          = int(float.fromhex(morbin_time_data[1]))
-    morbinTime_result["total_ftm"]      = float.fromhex(morbin_time_data[2]) / float(decimal_place)
-    morbinTime_result["jackpot_ftm"]    = float.fromhex(morbin_time_data[3]) / float(decimal_place)
-    morbinTime_result["jackpot_dollar"] = float.fromhex(morbin_time_data[4]) / float(decimal_place)
-    morbinTime_result["timeStamp"]      = int(float.fromhex(morbin_time_data[5]))
-    return morbinTime_result
+    print("get_morbinTime()")
+    try:    
+        morbinTime_result = {}
+        morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={its_morbin_time}&apikey={ftm_api_key}"
+        morbin_time_json = requests.get(morbin_time_get_request).json()['result']
+        morbin_time_json = morbin_time_json[len(morbin_time_json)-1]
+        print("morbin_time_json",morbin_time_json)
+        morbinTime_result["block"] = morbin_time_json["blockNumber"]
+        morbin_time_data = await parse_hex(morbin_time_json['data'].split('x')[1])
+        morbinTime_result["ftm_buyback"]    = float.fromhex(morbin_time_data[0]) / float(decimal_place)
+        morbinTime_result["count"]          = int(float.fromhex(morbin_time_data[1]))
+        morbinTime_result["total_ftm"]      = float.fromhex(morbin_time_data[2]) / float(decimal_place)
+        morbinTime_result["jackpot_ftm"]    = float.fromhex(morbin_time_data[3]) / float(decimal_place)
+        morbinTime_result["jackpot_dollar"] = float.fromhex(morbin_time_data[4]) / float(decimal_place)
+        morbinTime_result["timeStamp"]      = int(float.fromhex(morbin_time_data[5]))
+        print("morbinTime result",morbinTime_result)
+        return morbinTime_result
+    except:
+        print("failed to get morbinTime()")
+        return None
+
 
 async def get_buy_back_morbin_time():
-        buyback_morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=9999999&address={morb_token}&topic0={buy_back_for_morbin_time}&apikey={ftm_api_key}"
+    try:
+        print("get_buy_back_morbin_time")
+        buyback_morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={buy_back_for_morbin_time}&apikey={ftm_api_key}"
+        print("1st section")
         morbBuyBack_result = {}
         buyback_morbin_time_json = requests.get(buyback_morbin_time_get_request).json()['result']
+        print("second section")
+        print("buyback morbin time json",buyback_morbin_time_json)
         
         buyback_morbin_time_json = buyback_morbin_time_json[len(buyback_morbin_time_json)-1]
         morbin_time_data = await parse_hex(buyback_morbin_time_json['data'].split('x')[1])
         morbBuyBack_result["morb"]              = float.fromhex(morbin_time_data[0]) / float(decimal_place)
         morbBuyBack_result["total_morb"]        = float.fromhex(morbin_time_data[1]) / float(decimal_place)
+        print("morbBuyBack_result",morbBuyBack_result)
         return morbBuyBack_result
+    except:
+        print("failed to get buy back")
+        return None
 
 async def parse_hex(hex):
+        print("parse_hex")
         data_count = 0
         hex_data_table = list()
         while data_count < len(hex)//64:
