@@ -1,5 +1,6 @@
 from operator import indexOf
 from queue import Empty
+from xml.etree.ElementTree import QName
 import splinter, requests, nextcord, secrets, asyncio, time, TwitterBot, TelegramBot, FTMScanBot
 from enum import Enum
 credentials = secrets.get_credentials()
@@ -40,9 +41,17 @@ class VampToken_bot(nextcord.Client):
             await self.fetch_winning_blocks()
             print(dBot.user)
         except:
-            pass
+            print("Discord bot was unable to log in.")
         pass
 
+    async def display_winner(self):
+        try:
+            print("displaying winner")
+            print(self.last_tx["address"])
+            await self.change_presence(activity=nextcord.Game(name=self.last_tx["address"]))
+        except Exception as e:
+            print("failed to set gaming status")
+            print(e)
 
     '''
     The Main loop waits until discord is successfully logged in before
@@ -57,8 +66,8 @@ class VampToken_bot(nextcord.Client):
             try:
                 await self.check_morbin_time()
                 print("next step")
-                
-                if self.post_type != PostType.Empty:
+                await self.display_winner()
+                if self.post_type != PostType.Empty and False:
                     messages = await self.create_post_of_type()
                     self.loop.create_task(self.post_twitter(messages))
                     self.loop.create_task(self.post_telegram(messages))
@@ -178,7 +187,7 @@ class VampToken_bot(nextcord.Client):
             await self.finish_morbin_time()
             return
         if self.morbtime != None:
-            if  self.morbtime["block"] != last_morbtime_block:
+            if  self.morbtime["block"] != self.last_morbtime_block:
                 self.post_type = PostType.MorbinTime
                 await self.finish_morbin_time()
                 return
