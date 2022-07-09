@@ -7,7 +7,7 @@ decimal_place = 10**18
 
 last_winning_block= secrets.get_last_winning_block()
 testnetURL = "https://api.FTMScan.com/api?"
-morb_token = "0xa10666f9893A70fe476a425658802D16ce553D4C"
+morb_token = "0x936780672eb430c7792A5Afc2e0F5A905DBa8739"
 empty_token = "0x0000000000000000000000000000000000000000"
 jackpot_min_amt_changed = "0xaf059ee9d42c1ffcd90b59907d307cfab29e5d2ecf6402a5174ad8d4ec4e401b"
 jackpot_time_extended = "0xa8162f194f354dc15e429cc707c82c54a8a66cd6415e8e71670f4f404caccc00"
@@ -28,6 +28,7 @@ async def get_jack_pot_time():
     print("get_jackpot_time")
     Time_to_morb_result = {}
     jackpot_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&sort=desc&topic0={jackpot_time_extended}&apikey={ftm_api_key}"
+    print("request",jackpot_get_request)
     jackpot_json = requests.get(jackpot_get_request).json()
     jackpot_data = await parse_hex(jackpot_json['result'][len(jackpot_json['result'])-1]['data'].split('x')[1])
     Time_to_morb_result["last_block"] = jackpot_json['result'][0]["blockNumber"]
@@ -44,6 +45,7 @@ async def get_jackpot_award():
     print("get_jackpot_award()")
     try:
         jackpot_award_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={jackpot_award}&apikey={ftm_api_key}"
+        print("award",jackpot_award_get_request)
         jackpot_award_json = requests.get(jackpot_award_get_request).json()['result']
         jackpot_award_json = jackpot_award_json[len(jackpot_award_json)-1]
         jackpotAward_result = {}
@@ -70,6 +72,7 @@ async def get_morbinTime():
     try:    
         morbinTime_result = {}
         morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={its_morbin_time}&apikey={ftm_api_key}"
+        print("morbin_timeGet", morbin_time_get_request)
         morbin_time_json = requests.get(morbin_time_get_request).json()['result']
         morbin_time_json = morbin_time_json[len(morbin_time_json)-1]
         print("morbin_time_json",morbin_time_json)
@@ -92,7 +95,7 @@ async def get_buy_back_morbin_time():
     try:
         print("get_buy_back_morbin_time")
         buyback_morbin_time_get_request = f"{testnetURL}module=logs&action=getLogs&fromblock=0&toblock=90000000&address={morb_token}&topic0={buy_back_for_morbin_time}&apikey={ftm_api_key}"
-        print("1st section")
+        print("buyback", buy_back_for_morbin_time)
         morbBuyBack_result = {}
         buyback_morbin_time_json = requests.get(buyback_morbin_time_get_request).json()['result']
         print("second section")
