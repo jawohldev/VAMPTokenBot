@@ -1,7 +1,7 @@
 import asyncio
 from selenium.webdriver.common import keys
-import secrets, random
-credentials = secrets.get_credentials()
+import creds, random
+credentials = creds.get_credentials()
 class TwitterBot():
     def __init__(self):
         pass

@@ -1,10 +1,10 @@
-from operator import indexOf
-from queue import Empty
-from xml.etree.ElementTree import QName
-import splinter, requests, nextcord, secrets, asyncio, time, TwitterBot, TelegramBot, FTMScanBot
+import splinter,  nextcord, creds, asyncio, time, TwitterBot, TelegramBot, FTMScanBot
 from enum import Enum
-credentials = secrets.get_credentials()
+
 dead_address = "0x000000000000000000000000000000000000dead"
+isMorbTimeEnabled = True
+isJackpotEnabled = True
+credentials = creds.get_credentials()
 class PostType(Enum):
     Empty = 0
     JackPot = 1
@@ -26,56 +26,57 @@ class VampToken_bot(nextcord.Client):
         self.last_tx = {}
         self.displayType = DisplayType.Leader
         self.loop.create_task(self.main_loop())
+        self.stamp =time.time()-400
+        
+        '''
+    The Main loop waits until discord is successfully logged in before
+    beginning. then checks what type of message should be shared if it
+    exists, then adds the posting of those messages to asyncio's loop
+    afterwards sleeping until it is time to check for a new post.
+    
     '''
-    This sends a message to Discords API
-    '''
-    async def post(self, message):
-        try:
-            await dBot.get_channel(self.iChannel).send(message)
-        except:
-            "unsuccessful post"
-    async def post_image(self, message, image):
-        try:
-            await dBot.get_channel(self.iChannel).send(message, image)
-        except: 
-            "unseccessful post"
+    async def main_loop(self):
+        await self.on_ready()
+        self.loop.create_task(self.rotate_display())
+        #self.loop.create_task(self.jackpot_loop())
+        while True:
+            try:
+                wait_time = 2
+                self.post_type = await self.perform_checks()
+
+                print("next step", self.post_type)
+                
+                if self.post_type != None or self.post_type != PostType.Empty:
+                    messages = self.create_post_of_type()
+                    print("finished messages", messages)
+                    #self.loop.create_task(self.post_twitter(messages))
+                    #self.loop.create_task(self.post_telegram(messages))
+                    self.loop.create_task(self.send_post(messages))
+                    print("finished creating message tasks")
+            except Exception as e:
+                print("main loop failed due to ",e)
+            finally:
+                await asyncio.sleep(wait_time)
 
     async def on_ready(self):
         try:
             await asyncio.sleep(4)
-            await self.fetch_winning_blocks()
+            #await self.fetch_winning_blocks()
+            self.fetch_winning_blocks()
+            self.last_tx = await FTMScanBot.get_time_extended()
             # print(dBot.user)
-        except:
+        except Exception as e:
             print("Discord bot was unable to log in.")
-        pass
+            print(e)
+    # async def jackpot_loop():
+    #     while True:
+    #         try:
 
-    async def display_winner(self):
-        try:
-            name = self.last_tx["address"]
-            
-            if name == dead_address:
-                name = "Unclaimed Pot"
-            print("current leader", name)
-            await self.change_presence(activity=nextcord.Game(name=name))
-        except Exception as e:
-            print("failed to set gaming status")
-            print(e)
-    async def display_dollar(self):
-        try:
-            dollar = self.last_tx["jackpot_amount_dollar"]
-            print("current_dollar: ", dollar)
-            await self.change_presence(activity=nextcord.Game(name=f"{dollar:.2f}$"))
-        except Exception as e:
-            print("failed to display dollars")
-            print(e)
-    async def display_FTM(self):
-        try:
-            ftm = self.last_tx["jackpot_amount_FTM"]
-            print("current_ftm: ", ftm)
-            await self.change_presence(activity=nextcord.Game(name=f"{ftm:.2f} FTM"))
-        except Exception as e:
-            print("failed to display fantom")
-            print(e)
+    #             print()
+    #         except Exception as e:
+    #             print("Jackpot loop failed")
+    #             print(e)
+    #     pass
     async def rotate_display(self):
         
         while True:
@@ -94,48 +95,26 @@ class VampToken_bot(nextcord.Client):
                 print(e)
             else:
                 print(self.displayType.value)
-                
-            
+    '''**********************************************Messaging*******************************************'''
     '''
-    The Main loop waits until discord is successfully logged in before
-    beginning. then checks what type of message should be shared if it
-    exists, then adds the posting of those messages to asyncio's loop
-    afterwards sleeping until it is time to check for a new post.
-    
+    This sends a message to Discords API
     '''
-    async def main_loop(self):
-        await self.on_ready()
-        self.loop.create_task(self.rotate_display())
-        while True:
-            try:
-                await self.check_morbin_time()
-                print("next step")
-                
-                if self.post_type != PostType.Empty and False:
-                    messages = await self.create_post_of_type()
-                    self.loop.create_task(self.post_twitter(messages))
-                    self.loop.create_task(self.post_telegram(messages))
-                    self.loop.create_task(self.send_post(messages))
-            except Exception as e:
-                print(e)
-                self.post_type = PostType.Empty
-            finally:
-
-                
-                wait_time = 200 # catch in case last_tx isn't initialized
-                if self.next_check != None:
-                    wait_time = self.next_check
-                    print("next_check",self.next_check, "time_to_morb",self.iTime_to_morb)
-                if wait_time < 0:
-                   wait_time = 60
-                print("Time until next check: ", wait_time)
-                await asyncio.sleep(wait_time)
+    async def post(self, message):
+        try:
+            await dBot.get_channel(self.iChannel).send(message)
+        except:
+            "unsuccessful post"
+    async def post_image(self, message, image):
+        try:
+            await dBot.get_channel(self.iChannel).send(message, image)
+        except: 
+            "unseccessful post"
 
     '''
     Creates the messages to be shared
     Returns the created messages
     '''
-    async def create_post_of_type(self):
+    def create_post_of_type(self):
         lMessage = []
         isMinutes = "minutes"
         if self.post_type ==  PostType.WarningTime:
@@ -151,21 +130,21 @@ class VampToken_bot(nextcord.Client):
                 lMessage.append(f"No one has claimed the jackpot worth {self.last_tx['jackpot_amount_dollar']:.2f}$")
         if self.post_type ==  PostType.MorbinTime:
             print("MorbinTime message")
-            lMessage.append(f"ITS MORBIN TIME! {round(self.morbtime['ftm_buyback'])} FTM used to buyback and burn {round(self.buyback['morb'])} VAMP.")
-            lMessage.append(f"{round(self.buyback['morb'])} VAMP has been destroyed forever. Total VAMP burned so far {self.buyback['total_morb']:2f} VAMP")
+            lMessage.append(f"ITS MORBIN TIME! {round(self.morbTime['ftm_buyback'])} FTM used to buyback and burn {round(self.morb_buyback['morb'])} VAMP.")
+            lMessage.append(f"{round(self.morb_buyback['morb'])} VAMP has been destroyed forever. Total VAMP burned so far {self.morb_buyback['total_morb']:2f} VAMP")
             #lMessage.append(f"MorbinTime has occurred {self.morbtime['count']} Total VAMP burned {self.buyback['total_morb']:.4f}. Total FTM used: {self.morbtime['total_ftm']:.4f}")
-            lMessage.append(f"Another {self.morbtime['jackpot_ftm']:.4f} FTM ({self.morbtime['jackpot_dollar']:.2f}$) has been seeded into the jackpot!")
+            lMessage.append(f"Another {self.morbTime['jackpot_ftm']:.4f} FTM ({self.morbTime['jackpot_dollar']:.2f}$) has been seeded into the jackpot!")
             
         if self.post_type ==  PostType.JackPot:
             print("Jackpot Message")
             lMessage.append(f"WE HAVE A JACKPOT WINNER!\n {self.jackpot['address']}\n congratulations on winning {self.jackpot['ftm_award']:.4f}$" )
             lMessage.append(f"Another {self.jackpot['ftm_balance']:.2f} FTM ({self.jackpot['dollar_balance']}$) has been seeded into the jackpot!")
             lMessage.append(f"The jackpot has been won {self.jackpot['count']} times. Total FTM dispersed: {self.jackpot['total_ftm']} Total Dollars Won: {self.jackpot['total_dollar']:.2f}$")
-            if self.buyback is not None:
-                lMessage.append(f"{self.jackpot['ftm_buyback']} FTM was used to burn {self.buyback['morb']} VAMP." )
-                lMessage.append(f"Total VAMP burned: {self.buyback['total_morb']} using {self.jackpot['total_ftm']} FTM")
+            if self.jackpot_buyback is not None:
+                lMessage.append(f"{self.jackpot['ftm_buyback']} FTM was used to burn {self.jackpot_buyback['burned_morb']} VAMP." )
+                lMessage.append(f"Total VAMP burned: {self.jackpot_buyback['total_burned_morb']}")
             
-        if self.post_type ==  PostType.Empty:
+        if self.post_type ==  PostType.Empty or self.post_type == None:
             return []
         return lMessage
     '''
@@ -199,7 +178,7 @@ class VampToken_bot(nextcord.Client):
                     await twitter_bot.post(msg)
                     await asyncio.sleep(10)
         except Exception as e:
-            secrets.log(f"Firefox Failed trying Chrome - {time.localtime()}")
+            creds.log(f"Firefox Failed trying Chrome - {time.localtime()}")
             try:
                 with splinter.Browser('chrome', headless=True):
                     twitter_bot = TwitterBot.TwitterBot()
@@ -209,64 +188,199 @@ class VampToken_bot(nextcord.Client):
                         await twitter_bot.post(msg)
                         await asyncio.sleep(10)
             except:
-                secrets.log(f"Chrome failed stopping Twitter bot - {time.localtime()}")
+                creds.log(f"Chrome failed stopping Twitter bot - {time.localtime()}")
                 
  
         pass
 
+    '''***************************************************State Changing****************************************************'''
+    async def display_winner(self):
+        try:
+            name = self.last_tx["address"]
+            
+            if name == dead_address:
+                name = "Unclaimed Pot"
+            print("current leader", name)
+            await self.change_presence(activity=nextcord.Game(name=name))
+        except Exception as e:
+            print("failed to set gaming status")
+            print(e)
+
+    async def display_dollar(self):
+        try:
+            dollar = self.last_tx["jackpot_amount_dollar"]
+            print("current_dollar: ", dollar)
+            await self.change_presence(activity=nextcord.Game(name=f"{dollar:.2f}$"))
+        except Exception as e:
+            print("failed to display dollars")
+            print(e)
+
+    async def display_FTM(self):
+        try:
+            ftm = self.last_tx["jackpot_amount_FTM"]
+            print("current_ftm: ", ftm)
+            await self.change_presence(activity=nextcord.Game(name=f"{ftm:.2f} FTM"))
+        except Exception as e:
+            print("failed to display fantom")
+            print(e)
+
+                            
+    '''******************************************************Checks********************************************************'''
+    '''
+    performs the checks that will set the PostType
+    '''
+    async def perform_checks(self):
+        try:
+            self.post_type = PostType.Empty
+            if await self.check_morbin_time():
+                print("MorbinTime")
+                
+                return PostType.MorbinTime
+            elif await self.check_jackpot_time():
+                print("JackpotTIme")
+                
+                return PostType.JackPot
+            elif await self.check_time_to_warn():
+                print("warningtime")
+                return PostType.WarningTime
+        except Exception as e:
+            print("performing checks failed")
+            print(e)
+        
+
     '''
     Fetches information from FTMScanBot compares it and sets post_type to 
     the type of post needed to be distributed
+    see if it is morbin time, return yes if 1 new transaction has occured
+    replace information in morbtime and morb_buyback
     '''
     async def check_morbin_time(self):
-        self.last_tx = await FTMScanBot.get_jack_pot_time()
-        self.jackpot = await FTMScanBot.get_jackpot_award()
-        self.buyback = await FTMScanBot.get_buy_back_morbin_time()
-        self.morbtime = await FTMScanBot.get_morbinTime()
-        await self.fetch_winning_blocks()
-        self.post_type = PostType.Empty
-        self.iTime_to_morb = self.last_tx["timeStamp"] // 60
-        print("jackpot_time",self.last_tx["jackpot_time"])
-        self.next_check = (self.last_tx["jackpot_time"] - time.time()) /2
-        print(self.last_jackpot_award)
+        try:
+            previous_morbTime = self.last_morbtime_block
+            self.morbTime = await FTMScanBot.get_morbinTime()
+            if previous_morbTime != self.morbTime["block"]:
+                self.morb_buyback = await FTMScanBot.get_buy_back_morbin_time()
+                self.last_morbtime_block = self.morbTime["block"]
+                await self.finish_morbin_time()
+                return True
+                
+            print("it is not morbin time")
+            return False
+        except Exception as e:
+            print("check_morbin_time failed because", e)
+            return False
+    '''
 
-        if self.morbtime != None:
-            if  self.morbtime["block"] != self.last_morbtime_block:
-                self.post_type = PostType.MorbinTime
+    Fetches and sets Jackpot Buyback variables
+    checks if previous jackpot buyback is the same as the current
+
+            print("self.last_tx=={}",self.last_tx == {})
+            if self.last_tx == {}:
+                self.last_tx = await FTMScanBot.get_time_extended()   
+                print("\n",self.last_tx)
+                return False
+            previous_tx = self.last_tx["timestamp"]
+            self.last_tx = await FTMScanBot.get_time_extended()
+    '''
+    async def check_jackpot_time(self):
+        try:
+            print("checking Jackpot")
+            self.jackpot = await FTMScanBot.get_jackpot()
+            previous_jackpot = self.last_jackpot_award
+            print(previous_jackpot, self.jackpot["block"])
+            if self.jackpot["block"] != previous_jackpot:
+                print("Jackpot!")
+                self.jackpot_buyback = await FTMScanBot.get_jackpot_buyback()
+                self.last_jackpot_award = self.jackpot["block"]
                 await self.finish_morbin_time()
-                return
-        if self.jackpot != None:
-            if self.last_jackpot_award != self.jackpot["block"]:
-                self.post_type = PostType.JackPot
-                await self.finish_morbin_time()
-                return
-        if time.time() > self.last_tx["jackpot_time"]:           
-            print("check here post time check")
-            self.post_type = PostType.WarningTime
-            await self.finish_morbin_time()
-            return
+                print("finished morbintime")
+                return True
+            print("jackpot was not activated")
+            return False
+        except Exception as e:
+            print("check jackpot failed because ", e)
+            return False
+    '''
+    fetches the current leader of the jackpot. sets the information and returns true if:
+    1. a leader changes (once per 3 ish minutes) or
+    2. a reducing rate of one half ie buyer buys at 10 minute mark. then it warns at 10 5 2.5 1.25 .6125 etc terminating at the 
+    10 second mark.
+    This may need to use a seperate function that con be called from morbin/jackpot time to reset the timer
+    if self.last_tx != prev :     
+    #reset value
+    stamp = self.last_tx["jackpottime"] - self.last_tx["timestamp"] // 2
+    else 
+    stamp = stamp + ((self.last_tx["timestamp"]- stamp) // 2)
+
+    '''
+    async def check_time_to_warn(self):
+        try:
+            print("checkWarning", self.last_tx)
+            if self.last_tx == {}:
+                self.last_tx = await FTMScanBot.get_time_extended()   
+                print("\n",self.last_tx)
+                return False
+            previous_tx = self.last_tx["timestamp"]
+            self.last_tx = await FTMScanBot.get_time_extended()
+            if time.time() > self.stamp and time.time()  < self.last_tx['jackpot_time']:
+                print("time is past Stamp , resetting self.stamp")
+                if previous_tx != self.last_tx["timestamp"]:
+                    self.stamp = self.last_tx["timestamp"]
+                self.stamp += ((self.last_tx["jackpot_time"] - self.stamp ) //2)
+
+                return True
             
-        
-        print("niggerd")
+            
+            print("not time to warn")
+            return False
+        except Exception as e:
+            print("warning time failed because of ", e)
+            return False
+    # async def check_jackpot_extended(self):
+    #     self.last_tx = await FTMScanBot.get_time_extended()
+    #     print("warnBool",self.bwarn_time)
+    #     if self.last_tx != None or self.bwarn_time == False:
+    #         self.bwarn_time = True
+    #         time_to_pot = (self.last_tx["jackpot_time"] - time.time())
+    #         print("time_to_pot",time_to_pot)
+    #         await self.time_to_warn( time_to_pot // 2)
+    '''
+    Warning Functions
+
+    '''
+    # async def check_time_to_warn(self):
+    #     if self.jackpot["jackpot_time"] -self.jackpot['timestamp'] // 2  > self.jackpot['jackpot_time'] - time.time():
+    #         await self.time_to_warn(self.jackpot['jackpot_time'] - time.time())
+
+    # async def time_to_warn(self,_time):
+
+    #         print("time_to_warn", _time//2)
+    #         if _time < 1:
+    #             self.post_type = PostType.Empty
+    #             self.bwarn_time = False
+    #             return 
+    #         print("Time",_time)
+    #         await asyncio.sleep(_time)
+    #         print("check here post time check")
+    #         self.post_type = PostType.WarningTime
+    #         self.loop.create_task(self.finish_morbin_time())
+    #         self.loop.create_task(self.time_to_warn(_time // 2))
 
     async def finish_morbin_time(self):
-        print("post_type: ", self.post_type)
-        if self.morbtime == None:
-            self.morbtime = {"block":"0x00000"}
-        if self.jackpot == None:
-            self.jackpot = {"block": "0x00000"}
-        secrets.write_winning_block(self.morbtime["block"],self.jackpot["block"])
-        self.loop.create_task(self.fetch_winning_blocks())
+        try:
+            creds.write_winning_block(self.last_jackpot_award,self.last_morbtime_block)
+            self.fetch_winning_blocks()
+        except Exception as e:
+            print("failed to finish morbin time because", e)
 
     '''
     This will fetch the last winning blocks from winningblock.log
     '''
-    async def fetch_winning_blocks(self):
-        new_blocks = secrets.get_last_winning_block()
-        self.last_jackpot_award = new_blocks[1]
-        self.last_morbtime_block = new_blocks[0]
+    def fetch_winning_blocks(self):
+        new_blocks = creds.get_last_previous_block()
+        self.last_jackpot_award = new_blocks[0]
+        self.last_morbtime_block = new_blocks[1]
+        print("last award: ",self.last_jackpot_award)
+        print("last Morb: ", self.last_morbtime_block)
 
-dBot = VampToken_bot()
 
-#print(', '.join("%s: %s" % item for item in attrs.items()))
-dBot.run(credentials['DiscordAPIKey'])

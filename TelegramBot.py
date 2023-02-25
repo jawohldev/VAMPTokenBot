@@ -1,5 +1,5 @@
-import requests, secrets
-credentials = secrets.get_credentials()
+import requests, creds
+credentials = creds.get_credentials()
 url = "https://api.telegram.org/bot"
 class TelegramBot():
     def __init__(self):
