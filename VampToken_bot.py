@@ -49,8 +49,8 @@ class VampToken_bot(nextcord.Client):
                 if self.post_type != None or self.post_type != PostType.Empty:
                     messages = self.create_post_of_type()
                     print("finished messages", messages)
-                    #self.loop.create_task(self.post_twitter(messages))
-                    #self.loop.create_task(self.post_telegram(messages))
+                    self.loop.create_task(self.post_twitter(messages))
+                    self.loop.create_task(self.post_telegram(messages))
                     self.loop.create_task(self.send_post(messages))
                     print("finished creating message tasks")
             except Exception as e:
